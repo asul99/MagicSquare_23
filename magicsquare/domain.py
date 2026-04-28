@@ -39,6 +39,30 @@ def magic_constant() -> int:
     return (n * (n * n + 1)) // 2
 
 
+def sum_row(board: list[list[int]], r: int) -> int:
+    """Return the sum of row ``r`` (0-based)."""
+    return sum(board[r])
+
+
+def sum_col(board: list[list[int]], c: int) -> int:
+    """Return the sum of column ``c`` (0-based)."""
+    n = MATRIX_SIZE
+    return sum(board[r][c] for r in range(n))
+
+
+def sum_diag(board: list[list[int]], which: int) -> int:
+    """Return the sum of a diagonal (0-based selector).
+
+    Args:
+        board: Square matrix.
+        which: 0 for main diagonal, 1 for anti-diagonal.
+    """
+    n = MATRIX_SIZE
+    if which == 0:
+        return sum(board[i][i] for i in range(n))
+    return sum(board[i][n - 1 - i] for i in range(n))
+
+
 def is_magic_square_complete(board: list[list[int]]) -> bool:
     """Check whether all rows/cols/diagonals sum to the magic constant."""
     target = magic_constant()
@@ -47,15 +71,15 @@ def is_magic_square_complete(board: list[list[int]]) -> bool:
         return False
 
     for r in range(n):
-        if sum(board[r]) != target:
+        if sum_row(board, r) != target:
             return False
     for c in range(n):
-        if sum(board[r][c] for r in range(n)) != target:
+        if sum_col(board, c) != target:
             return False
 
-    if sum(board[i][i] for i in range(n)) != target:
+    if sum_diag(board, 0) != target:
         return False
-    if sum(board[i][n - 1 - i] for i in range(n)) != target:
+    if sum_diag(board, 1) != target:
         return False
     return True
 
@@ -64,11 +88,11 @@ def line_sums(board: list[list[int]]) -> dict[str, list[int]]:
     """Return row, column, and diagonal sums for a square board."""
     n = MATRIX_SIZE
     return {
-        "rows": [sum(board[r]) for r in range(n)],
-        "cols": [sum(board[r][c] for r in range(n)) for c in range(n)],
+        "rows": [sum_row(board, r) for r in range(n)],
+        "cols": [sum_col(board, c) for c in range(n)],
         "diags": [
-            sum(board[i][i] for i in range(n)),
-            sum(board[i][n - 1 - i] for i in range(n)),
+            sum_diag(board, 0),
+            sum_diag(board, 1),
         ],
     }
 
