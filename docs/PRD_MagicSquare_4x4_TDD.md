@@ -1,14 +1,15 @@
-# PRD — Magic Square (4×4) TDD 연습 프로젝트
+# PRD — Magic Square (4×4) · Dual-Track UI + Logic TDD (MLOps 정합)
 
 **문서 성격:** 제품·도메인 요구사항 정의 (구현 코드 없음).  
+**방법론:** **Dual-Track UI + Logic TDD** — UI(또는 사용자 대면 경계)는 **UX Contract**로 RED를 만들고, 로직은 **Logic Rule**로 RED를 만든다. GREEN·REFACTOR는 두 트랙 모두에서 동시에 유지한다. **MLOps 정합**은 CI/CD 단계 분리, 아티팩트·게이트, 계약 검증을 본 PRD의 트랙 구조에 대응시키는 것을 뜻한다(§8.5).  
 **근거 문서:** `Reporter/04_magic-square-cursorrules-tdd-rules-review-report.md`(골격·검토 관점), `Reporter/01_magic-square-problem-definition-report.md`(문제·동기), `Reporter/02_magic-square-clean-architecture-tdd-design-report.md`(기능·계약·성공·실패 정책), `Reporter/03_magic-square-cursorrules-tdd-rules-report.md`(Red–Green–Refactor 품질 원칙).  
-**범위 고정:** 본 PRD는 **4×4, 빈칸 2개, 두 조합 시도 후 `int[6]` 반환 또는 표준 오류**만을 다룬다. UI·DB·Web·N×N 일반화·완전 생성 알고리즘은 명시적 Out-of-Scope다.
+**범위 고정:** 본 PRD는 **4×4, 빈칸 2개, 두 조합 시도 후 `int[6]` 반환 또는 표준 오류**만을 다룬다. DB·Web·N×N 일반화·완전 생성 알고리즘은 명시적 Out-of-Scope다. **별도 상용 UI 화면** 구현은 Out-of-Scope이나, Dual-Track의 **UI 트랙**은 §8에서 **경계(Boundary)·향후 API/대시보드에 대한 UX Contract 테스트**로 정의한다.
 
 ---
 
 ## 1. Executive Summary
 
-본 프로젝트는 **4×4 부분 채움 격자**에서 두 빈칸에 누락된 두 숫자를 배치해 **마방진 불변조건(행·열·주·부대각선 합 34, 1~16 각 1회)**을 만족시키는지 판단하고, 규칙에 따라 **1-index 좌표와 배치 숫자 순서가 고정된 `int[6]`**을 반환한다. 알고리즘 난이도가 아니라 **TDD로 계약을 고정하고, 불변조건을 테스트로 검증 가능한 문장으로 유지하는 훈련**이 목적이다. 핵심 역량은 **도메인 불변조건 명세화**, **Boundary와 Domain의 이중 트랙 계약 테스트**, **Concept → Rule → Use Case → Contract → Test → Component 추적성**이다.
+본 프로젝트는 **4×4 부분 채움 격자**에서 두 빈칸에 누락된 두 숫자를 배치해 **마방진 불변조건(행·열·주·부대각선 합 34, 1~16 각 1회)**을 만족시키는지 판단하고, 규칙에 따라 **1-index 좌표와 배치 숫자 순서가 고정된 `int[6]`**을 반환한다. 알고리즘 난이도가 아니라 **TDD로 계약을 고정하고, 불변조건을 테스트로 검증 가능한 문장으로 유지하는 훈련**이 목적이다. 핵심 역량은 **도메인 불변조건 명세화**, **Dual-Track: UX Contract(UI·경계)와 Logic Rule(도메인)의 독립 검증**, **MLOps 관점에서의 파이프라인 단계·아티팩트·승격 게이트와의 정렬(§8.5)**, **Concept → Rule → Use Case → Contract → Test → Component 추적성**이다. “완성” 수학 정의는 **§2.3 INV-C1~C5**에 단일화했고, 용어·트랙 태그는 **§13 Glossary**를 참고한다.
 
 ---
 
@@ -16,12 +17,24 @@
 
 ### 2.1 문제의 정의(올바른 관점)
 
-표면적 표현인 “4×4 마방진을 만든다”가 아니라, **주어진 입력 계약을 만족하는 상태에서, 결정적 규칙으로 빈칸·누락 수를 식별하고, 최대 두 번의 후보 배치를 검사하여 마방진 불변조건을 만족하는 완성이 존재하는지 판단하고, 성공 시 규격화된 출력 벡터로 표현한다**는 문제다. “완성”은 **불변조건 INV-05~09를 동시에 만족하는 완전 격자(0 없음)**로 정의한다.
+표면적 표현인 “4×4 마방진을 만든다”가 아니라, **주어진 입력 계약을 만족하는 상태에서, 결정적 규칙으로 빈칸·누락 수를 식별하고, 최대 두 번의 후보 배치를 검사하여 마방진 불변조건을 만족하는 완성이 존재하는지 판단하고, 성공 시 규격화된 출력 벡터로 표현한다**는 문제다. “완성”은 **§2.3의 완성 상태 불변조건을 동시에 만족하는 완전 격자(0 없음)**으로 정의한다.
 
 ### 2.2 입력·출력 계약이 핵심인 이유
 
 - 테스트는 **호출자와 구현 간 계약**이다. 행렬 크기·빈칸 개수·값 범위·중복·빈칸 순서·`n1,n2` 의미가 고정되지 않으면, 실패가 **버그인지 스펙 변경인지** 구분할 수 없다.
-- **경계(Boundary)**는 원시 `int[][]`의 구조적·도메인 전제를 검증하고, **도메인**은 전제가 성립한 뒤의 순수 판단만 수행한다. 계약이 문서·테스트에 없으면 Dual-Track TDD의 **RED 대상**이 사라진다.
+- **경계(Boundary)**는 원시 `int[][]`의 구조적·도메인 전제를 검증하고, **도메인**은 전제가 성립한 뒤의 순수 판단만 수행한다. 계약이 문서·테스트에 없으면 Dual-Track(UI·Logic)의 **RED 대상**이 사라진다.
+
+### 2.3 완성 상태 불변조건 (Completion Invariants)
+
+“완성”은 **모든 셀이 0이 아닌** 4×4 격자에 대해 아래를 **동시에** 만족할 때다. FR-04·BR-07·BR-08과 동일하며, 외부 문서의 INV 번호를 쓰지 않고 본 PRD에서 단일 근거로 쓴다.
+
+| ID | 불변조건 |
+|----|----------|
+| INV-C1 | 셀 값의 multiset이 `{1,…,16}`과 일치한다(각 수 정확히 1회). |
+| INV-C2 | 네 행 각각의 네 수의 합은 **34**이다. |
+| INV-C3 | 네 열 각각의 합은 **34**이다. |
+| INV-C4 | 주대각선(↘) 네 수의 합은 **34**이다. |
+| INV-C5 | 부대각선(↙) 네 수의 합은 **34**이다. |
 
 ---
 
@@ -31,8 +44,8 @@
 |------|------|
 | **주 사용자** | TDD·불변조건·레이어 분리를 연습하는 **학습자(구현자)** |
 | **이해관계자** | 동일 계약으로 리뷰·채점하는 **리뷰어/교육자** |
-| **사용 목적** | 콘솔 또는 테스트 러너에서 **단위·통합 테스트를 반복 실행**하며 Red–Green–Refactor 사이클을 유지 |
-| **사용 환경** | JVM 기반 테스트 도구(예: JUnit), IDE, CI. **별도 UI·DB 없이** 호출 가능한 API 또는 Application 진입점 |
+| **사용 목적** | 콘솔 또는 테스트 러너에서 **단위·통합 테스트를 반복 실행**하며 Red–Green–Refactor 사이클을 유지. CI에서는 **UI(UX Contract) 잡**과 **Logic 잡**을 분리해 병렬·독립 실패를 허용한다(§8.5). |
+| **사용 환경** | JVM 기반 테스트 도구(예: JUnit), IDE, CI. **별도 DB 없이** 호출 가능한 API 또는 Application 진입점. UI 트랙은 Boundary·Facade·향후 대시보드에 대한 **계약 테스트**로 수행 가능하다. |
 
 ---
 
@@ -49,7 +62,7 @@
 
 ### 4.2 Out-of-Scope
 
-- **UI 화면** 개발(웹·데스크톱·모바일)
+- **상용 UI 화면** 개발(웹·데스크톱·모바일) — 본 PRD 범위에서는 구현하지 않으나, **UX Contract 테스트**(§8)는 Boundary·진입점에 대해 **설계·RED·GREEN**을 강제한다.
 - **DB 저장·조회**, 파일 영속 레이어(본 PRD 기본 범위에서 제외; 확장 시 별도 PRD 부록)
 - **N×N 일반화**(n≠4, 상수≠34) — 필요 시 “확장 항목”으로만 언급, 본 구현 요구 아님
 - **마방진 완전 생성**(임의 조건에서 모든 해 탐색·열거)
@@ -73,7 +86,7 @@
 | **처리 규칙** | (1) `grid != null`, `grid.length == 4`, 모든 행 `row != null` 및 `row.length == 4`. (2) 셀 값은 `0` 또는 `1 <= v <= 16`. (3) 값 `0`인 셀의 개수는 정확히 2. (4) `0`이 아닌 값들은 서로 중복 없음. **불변조건:** 검증 과정에서 `grid`의 어떤 셀 값도 변경하지 않는다(§7 부작용 금지와 동일 정책). |
 | **출력** | 검증 성공 시 도메인으로 전달 가능한 동일 논리 격자(참조 정책은 구현에서 결정하되 **원본 배열 불변**). 실패 시 §6의 `errorCode` 및 고정 `message`를 담는 실패 결과(또는 예외; 프로젝트 단일 정책으로 선택하되 테스트는 동일 기대로 검증). |
 | **승인 기준 (AC)** | AC-FR01-1: `null` 또는 길이≠4인 최상위 배열이면 `INVALID_GRID_SIZE` 및 메시지 `Grid must be 4x4.`와 정확히 일치한다. AC-FR01-2: 임의 행이 `null`이거나 길이≠4이면 동일 코드·메시지다. AC-FR01-3: `0` 개수가 0,1,3,…이면 `INVALID_EMPTY_CELL_COUNT` 및 `Exactly two cells must be empty (value 0).`와 정확히 일치한다. AC-FR01-4: 셀에 17 또는 -1이 존재하면 `VALUE_OUT_OF_RANGE` 및 `Each cell must be 0 or an integer from 1 to 16.`와 정확히 일치한다. AC-FR01-5: 0 제외 동일 값이 2회 이상이면 `DUPLICATE_NONZERO_VALUE` 및 `Non-zero values must not repeat.`와 정확히 일치한다. AC-FR01-6: 위 실패 케이스에서 도메인 `resolve`/`isMagic` 등 핵심 연산이 **0회** 호출됨을 테스트가 검증한다(Mock 또는 스파이). AC-FR01-7: 검증 전후 동일 `int[][]` 참조에 대해 모든 셀 값이 비트 동일(bitwise 동등)하다. |
-| **오류/예외 정책** | §6 BR-ERR 및 §8.1 표준 문구. Boundary에서만 매핑 가능한 일반 오류는 `DOMAIN_UNEXPECTED` / `An unexpected domain error occurred.` (도메인에서 처리되지 않은 예외 상황에 한함). |
+| **오류/예외 정책** | §6 BR-ERR 및 동일 절의 표준 `message` 문구. Boundary에서만 매핑 가능한 일반 오류는 `DOMAIN_UNEXPECTED` / `An unexpected domain error occurred.` (도메인에서 처리되지 않은 예외 상황에 한함). |
 
 ---
 
@@ -112,7 +125,7 @@
 | **Feature ID** | FR-04 |
 | **설명** | **0이 없는** 4×4 정수 격자가 마방진 불변조건을 만족하는지 판별한다. |
 | **입력** | 4×4, 모든 셀 1~16 |
-| **처리 규칙** | (1) multiset이 `{1,..,16}`과 일치. (2) 각 행 합=34, 각 열 합=34, 주대각선 합=34, 부대각선 합=34. **불변조건:** BR-01~BR-04 및 마법 상수 34. |
+| **처리 규칙** | (1) multiset이 `{1,..,16}`과 일치. (2) 각 행 합=34, 각 열 합=34, 주대각선 합=34, 부대각선 합=34. **불변조건:** §2.3 INV-C1~C5(완성 정의). 입력은 본 FR 표에 따라 **0 없이** 모든 셀 1~16. |
 | **출력** | `true` 또는 `false`(또는 실패 타입; 0 존재 시 호출 금지 정책 택일) |
 | **승인 기준 (AC)** | AC-FR04-1: 알려진 완성 4×4 마방진에 대해 `true`. AC-FR04-2: 행합만 34로 맞추고 대각선을 깨트린 완전 격자에 대해 `false`. AC-FR04-3: 합은 34이나 1~16 multiset 위반인 완전 격자에 대해 `false`. AC-FR04-4: 셀에 0이 남아 있으면 본 판정 API는 호출되지 않거나, 호출 시 명시적 실패로 테스트 고정. |
 | **오류/예외 정책** | 0 포함 입력은 FR-05 조합 단계에서 완성 후에만 본 판정에 전달한다. |
@@ -151,7 +164,7 @@
 | BR-10 | 성공 응답에서 `n1`은 좌표 `(r1,c1)`에 배치된 값, `n2`는 `(r2,c2)`에 배치된 값이다. |
 | BR-11 | 시도 1이 성공하면 `n1 = min(누락 두 수)`, `n2 = max(누락 두 수)`이다. |
 | BR-12 | 시도 1이 실패하고 시도 2만 성공하면 `n1 = max(누락 두 수)`, `n2 = min(누락 두 수)`이다. |
-| BR-ERR-01 | `INVALID_GRID_SIZE`의 메시지는 `Grid must be 4x4.`와 **전체 문자열 일치**(앞뒤 공밍·줄바꿈 없음)이다. |
+| BR-ERR-01 | `INVALID_GRID_SIZE`의 메시지는 `Grid must be 4x4.`와 **전체 문자열 일치**(앞뒤 공백·줄바꿈 없음)이다. |
 | BR-ERR-02 | `INVALID_EMPTY_CELL_COUNT`의 메시지는 `Exactly two cells must be empty (value 0).`와 전체 일치한다. |
 | BR-ERR-03 | `VALUE_OUT_OF_RANGE`의 메시지는 `Each cell must be 0 or an integer from 1 to 16.`와 전체 일치한다. |
 | BR-ERR-04 | `DUPLICATE_NONZERO_VALUE`의 메시지는 `Non-zero values must not repeat.`와 전체 일치한다. |
@@ -170,45 +183,162 @@
 | NFR-03 | **결정론:** 동일 입력에 대해 동일 출력(성공 배열 또는 동일 `errorCode`+`message`) | 동일 입력 연속 실행 테스트 |
 | NFR-04 | **부작용 금지:** Boundary·Domain 공통으로, 호출자가 전달한 `int[][]` 및 각 행 배열에 대해 **메서드/유스케이스 종료 후 모든 셀 값이 호출 전과 비트 동등** | 호출 전 깊은 복사 스냅샷과 `assertArrayEquals` 등으로 검증 |
 | NFR-05 | **성능(선택):** 단일 유효 입력에 대한 end-to-end 처리 시간이 **50ms 이하**(개발 머신 기준, CI에서는 상한 완화 가능)를 만족 | `@Timeout` 또는 시간 측정 assertion(상한 명시) |
+| NFR-06 | **재현 가능 빌드:** CI에서 JDK·빌드 도구 버전이 **고정**(툴체인 매트릭스·락 파일)되어 동일 커밋에 대해 로컬·원격이 동일 실패를 재현할 수 있다 | CI 설정에 버전 명시; 실패 재현 절차 문서화(선택) |
 
 **품질 원칙(Report/03·04 정합):** Red 단계에서는 **의도된 실패**만 허용하고 프로덕션 변경은 최소화한다. Green은 **현재 실패 테스트 통과에 필요한 최소 변경**만 한다. Refactor는 **관측 가능한 동작 불변**을 유지하며, 커버리지는 리팩터 전 대비 낮아지지 않는다(측정 가능 시).
 
 ---
 
-## 8. Dual-Track TDD Strategy
+## 8. Dual-Track UI + Logic TDD (핵심 원리 · 매핑 · MLOps)
 
-### 8.1 Track A — Boundary(UI) TDD
+### 8.1 핵심 원리
 
-- **Contract-first 테스트 항목:** `INVALID_GRID_SIZE`, `INVALID_EMPTY_CELL_COUNT`, `VALUE_OUT_OF_RANGE`, `DUPLICATE_NONZERO_VALUE`, `NO_SOLUTION`, `AMBIGUOUS_SOLUTION`, `DOMAIN_UNEXPECTED` 각각에 대해 `errorCode` 및 **전체 `message` 문자열** assert. 유효 입력 1건은 Mock 도메인으로 `int[6]` 동등성 assert.
+- **UI 트랙:** 관측 가능한 경계(초기 화면·오류 표시·버튼 활성화·메시지 가시성 등)는 **UX Contract**에 따라 RED를 만든다. 로직 구현 세부(행 합 34 등)를 테스트가 직접 알 필요는 없다.
+- **로직 트랙:** 도메인은 **Logic Rule**(허용/거부, 반환/차단, 계산, 유지/중단)에 따라 RED를 만든다. React·DOM 등 UI 프레임워크를 테스트가 알 필요는 없다.
+- **독립성:** 두 트랙의 테스트는 **서로 완전히 독립**한다 — UI(UX Contract) 테스트는 도메인 알고리즘을 import·단언하지 않고, Logic 테스트는 UI 문자열·컴포넌트 트리를 검증하지 않는다. 연결은 **공개 API·DTO·errorCode+message 표** 같은 **계약**으로만 이루어진다.
+- **GREEN·REFACTOR:** 각 트랙에서 GREEN은 해당 트랙 RED를 해소하는 최소 변경, Refactor는 **관측 가능 동작(계약) 불변** 하에 수행한다.
+
+### 8.2 언어: UX Contract vs Logic Rule
+
+| 구분 | 권장 서술(UX Contract) | 권장 서술(Logic Rule) |
+|------|------------------------|------------------------|
+| 의미 | 보인다/안 보인다, 가능/불가능, 활성/비활성, 포함/미포함 | 허용/거부, 유지/중단, 반환/차단, 계산/저장 |
+| 본 PRD 적용 | “해당 `errorCode`의 사용자 메시지가 노출된다”, “성공 시 `int[6]`이 응답에 포함된다” | “입력 계약 위반 시 도메인 resolve가 호출되지 않는다”, “두 시도 모두 실패 시 해를 반환하지 않고 `NO_SOLUTION`을 반환한다” |
+
+### 8.3 시나리오 → UX Contract → Logic Rule (3단 매핑)
+
+아래는 **판단(Decision)**이 포함된 항목만 테스트 전환 대상으로 한다. 동사로 끝나지 않는 작업 나열형 To-Do는 테스트로 바꾸지 않는다.
+
+| 시나리오 | UX Contract (관측 상태) | Logic Rule (백엔드·도메인 판단) |
+|----------|-------------------------|-----------------------------------|
+| 행·열 합이 34가 아닌 완성 격자를 판정할 때(단위) | (Logic 전용) FR-04 단위에서는 UI 문구 없음 | 합·multiset 규칙에 따라 **마방진 판정이 거부**된다(`false`) |
+| 빈칸이 정확히 2개가 아님 | 해당 오류 메시지가 **가시적**이다(또는 계약된 `errorCode`가 외부에 노출된다) | 입력 검증이 **거부**되고 도메인 해석이 **중단**된다 |
+| 유효 입력 + FR-05 성공 | 성공 응답에 `int[6]`이 **포함**된다 | 규칙대로 해가 **반환**된다 |
+| 정수가 아닌 셀 값(타입 혼재 시나리오가 언어에서 가능한 경우) | 입력 필드/셀 표현이 계약대로 **오류 상태**로 표시된다(해당 표면이 있을 때) | 잘못된 값은 경계에서 **차단**된다 |
+| 두 시도 모두 실패 | `NO_SOLUTION` 메시지가 **가시적**이다 | 유효 해가 없으므로 해 **반환이 차단**되고 표준 오류가 **반환**된다 |
+| 두 시도 모두 성공 | `AMBIGUOUS_SOLUTION` 메시지가 **가시적**이다 | 모호하므로 해 **반환이 거부**된다 |
+
+### 8.4 트랙별 테스트 실행 가이드
+
+**Track A — UX Contract(UI·Boundary)**
+
+- **대상:** 호출자·API·CLI·향후 대시보드가 **관측하는 것**만 — `errorCode`, **전체 `message`**, 성공 시 `int[6]` 존재·동등성.
+- **Contract-first:** `INVALID_GRID_SIZE`, `INVALID_EMPTY_CELL_COUNT`, `VALUE_OUT_OF_RANGE`, `DUPLICATE_NONZERO_VALUE`, `NO_SOLUTION`, `AMBIGUOUS_SOLUTION`, `DOMAIN_UNEXPECTED` 각각 assert. 유효 입력 1건은 Mock 도메인으로 `int[6]` 동등성 assert.
 - **실패 정책:** 예외를 쓰는 경우에도 **타입·메시지**는 위 스키마와 동일하게 검증 가능해야 한다. Domain은 Boundary에 **에러 코드**만 넘기고 문구 중복 정의는 Boundary 한 곳으로 제한하는 것이 바람직하나(SRP), 프로젝트 정책이 “도메인 예외 직통”이어도 **문구 표**는 단일 SoT로 유지한다.
+- **UI 테스트 코드는** 도메인 클래스의 내부 판정 메서드를 직접 호출하지 않는다(독립성). Facade/Application만 호출한다.
 
-### 8.2 Track B — Domain(Logic) TDD
+**Track B — Logic Rule(Domain)**
 
-- **메서드 단위 테스트:** `locateEmptyCells`, `computeMissingNumbers`, `isCompletedMagicSquare`, `resolveTwoPlacements`(명칭 예시) 각각에 대해 성공·실패 경로.
-- **불변조건 테스트:** BR-01~BR-12에 대응하는 표 형 테스트(표준 4×4 예제·깨진 대각선·중복·범위 외 값은 Boundary에서 차단되는지/도메인 전제 분리되는지 구분).
+- **대상:** `locateEmptyCells`, `computeMissingNumbers`, `isCompletedMagicSquare`, `resolveTwoPlacements`(명칭 예시) 등 **순수 로직**.
+- **불변조건 테스트:** BR-01~BR-12에 대응하는 표 형 테스트. 범위 외·중복은 Boundary에서 차단되는지, 0 없는 격자에 대한 판정만 Domain에서 하는지 **경계 분리**를 테스트로 고정한다.
+- **Logic 테스트는** 사용자 메시지 문자열을 assert하지 않는다(독립성). 결과 타입·불변량·호출 횟수만 검증한다.
 
-### 8.3 병렬 진행 규칙
+### 8.5 MLOps 정합 (파이프라인 · 아티팩트 · 게이트)
+
+본 프로젝트는 **학습 파이프라인**을 두지 않지만, **MLOps와 동일한 품질 레일**을 적용한다.
+
+| MLOps 관행 | 본 PRD 대응 |
+|------------|-------------|
+| **단계 분리** | CI에서 **Job A: UX Contract / Boundary**와 **Job B: Domain·Logic**을 분리한다. 한쪽 실패가 다른쪽 아티팩트를 무효화하지 않도록 병렬 실행 가능하게 한다. |
+| **데이터·모델 아티팩트** | §9.3의 **골든 격자·골든 `int[6]` 벡터**(TD-*)를 버전 관리된 테스트 데이터로 취급한다. 변경 시 PR에 **계약 변경** 라벨(§9.2). |
+| **품질 게이트** | NFR-01~02 커버리지, NFR-03 결정론, NFR-06(재현 가능 빌드), 계약 문자열 전부 assert를 **병합 전 필수**로 둔다. |
+| **서빙 계약** | 향후 REST/gRPC로 노출 시 **스키마·errorCode**에 대한 contract test를 Track A에 편입한다. Logic 트랙은 변경 없이 유지한다. |
+| **관측** | 운영 연동 시 구조화 로그에 `errorCode` 및 시나리오 ID(TP-*)를 남겨 **거부/중단 원인**을 추적한다(선택). |
+
+**비결정론:** 본 도메인은 결정론적이다. 확장 시 샘플링·랜덤이 들어가면 Logic 트랙에 **시드 고정·허용 오차·불변량(property)** 테스트를 별도 하위 전략으로 둔다.
+
+#### 8.5.1 CI 잡 · 아티팩트 · 병합 게이트 (체크리스트)
+
+| 항목 | 권장 내용 |
+|------|-----------|
+| **Job A (UX Contract)** | Facade·Boundary·Application 진입점 테스트만 포함. 소스 트리에서 `**/domain/**` 직접 import **금지**(팀 규칙으로 강제 가능). |
+| **Job B (Logic)** | Domain 단위·FR-02~04 직접 테스트. 사용자 메시지 문자열 assert **금지**. |
+| **병렬** | A·B는 서로 **needs 없이** 병렬 실행 가능. 병합(merge) 조건은 **A 성공 AND B 성공**. |
+| **아티팩트** | 커버리지 XML/HTML(JaCoCo 등), 테스트 리포트, (선택) 골든 벡터 diff 요약을 빌드 아티팩트로 보관한다. |
+| **캐시** | 의존성 캐시는 NFR-06과 별개로, **테스트 결정론**은 캐시 무관하게 동일해야 한다. |
+| **실패 시** | 한 트랙만 실패해도 PR은 병합 불가; 다른 트랙 로그는 **원인 분리**에 사용한다. |
+
+### 8.6 외부 계약 스키마 (성공·실패)
+
+HTTP/JSON 등 **외부 표면**을 추가할 때의 최소 계약(본 PRD는 구현 없음, **SoT는 §6 메시지 문자열**).
+
+**성공(200 등):**
+
+```json
+{
+  "ok": true,
+  "solution": [1, 2, 3, 4, 5, 6]
+}
+```
+
+- `solution`은 길이 6의 정수 배열, 의미는 FR-05·BR-09~12와 동일(1-index 좌표 및 `n1`,`n2`).
+
+**실패(4xx/422 등, 예시):**
+
+```json
+{
+  "ok": false,
+  "errorCode": "INVALID_GRID_SIZE",
+  "message": "Grid must be 4x4."
+}
+```
+
+- `errorCode`·`message`는 §6의 BR-ERR-* 규칙과 **문자 단위 동일**해야 하며, Track A 테스트가 이 쌍을 검증한다.
+- **보안:** 운영 로그에 원시 `grid` 전체를 남기지 않는 것을 권장(필요 시 해시·요약만).
+
+### 8.7 계약 소유권 · 변경 통제 (RACI 요약)
+
+| 대상 | 책임(Accountable) | 실행(Responsible) | 협의(Consulted) |
+|------|-------------------|-------------------|------------------|
+| `errorCode` 열거·추가 | 리드/교육자 | 구현자 | 리뷰어 |
+| `message` 전문(영문 고정) | 본 PRD(§6) | 변경 시 PRD 개정 또는 “계약 변경” DEC | CI·Track A 테스트 |
+| 골든 벡터(TD-*, TP-*) | 구현자 | 테스트 유지 | 리뷰어 |
+| CI Job A/B 분리 | 플랫폼/구현자 | 저장소 설정 | 전원 |
+
+### 8.8 Definition of Done (트랙별)
+
+**Track B (Logic) DoD:** 해당 스토리에 대한 BR·FR 도메인 AC를 만족하는 단위 테스트가 있고, NFR-01 하한을 깨지 않는다. Logic 테스트에 사용자 메시지 assert가 없다.
+
+**Track A (UX Contract) DoD:** Facade(또는 Boundary) 경로에서 `errorCode`+전체 `message`·성공 `int[6]`이 §6·FR와 일치함을 테스트로 고정한다. Domain 구체 클래스에 직접 의존하지 않는다.
+
+**릴리스/병합 DoD:** Job A·Job B 모두 Green, §9.2 회귀 정책 준수, §12 해당 행 추적성이 깨지지 않았다.
+
+### 8.9 금지 의존성 · 안티패턴
+
+| 금지 | 이유 |
+|------|------|
+| Track A 테스트가 Domain의 `isMagic` 등 **내부 API** 직접 호출 | UX Contract가 구현 세부에 묶임 |
+| Track B 테스트가 `message` **전문** assert | Logic이 표현층에 묶임 |
+| 에러 메시지 **부분 문자열**만 매칭 | 계약 이완·오탐 허용 |
+| FR-01 실패 경로에서 도메인 해석 **실행** | AC-FR01-6 위반 |
+| 단일 CI 잡에 A+B 테스트를 섞되 **실패 시 구분 불가** | MLOps 단계 분리 목적 상실(잡은 분리하되 리포트는 하나로 모을 수 있음) |
+
+### 8.10 병렬 진행 규칙 (인간 루프)
 
 - **금지:** “도메인 전부 구현 후 경계 추가” 단일 워터폴.
-- **권장 사이클:** 동일 주제에 대해 **UI(Boundary) RED & Logic RED → UI GREEN & Logic GREEN → REFACTOR**를 짧은 루프로 반복. 한 기능 주제(예: 빈칸 개수 오류)를 고를 때 Track A·B에 **대칭되는 실패 테스트**를 먼저 추가한다.
-- **근거:** `Reporter/04`에 명시된 대로 IDE가 단계를 강제하지 않으므로, **PR·태스크 단위로 RED 범위를 쪼개** 인간이 루프를 집행한다.
+- **권장 사이클:** 동일 주제에 대해 **UX Contract RED & Logic RED → 각 GREEN → REFACTOR**를 짧은 루프로 반복. 한 기능 주제(예: 빈칸 개수 오류)를 고를 때 Track A·B에 **대칭되는 실패 테스트**를 먼저 추가한다.
+- **근거:** IDE가 단계를 강제하지 않으므로, **PR·태스크 단위로 RED 범위를 쪼개** 인간이 루프를 집행한다(`Reporter/04`).
 
 ---
 
 ## 9. Test Plan (QA)
 
+**Dual-Track 태깅:** 각 TP 시나리오는 구현 시 **Track A / Track B / 양측** 중 어디에서 1차 검증하는지 PR 또는 테스트 클래스 주석에 표기한다. §8.3 매핑 표와 불일치하면 안 된다.
+
 ### 9.1 시나리오 기반 테스트 목록
 
-| 시나리오 ID | 조건 | 기대 |
-|---------------|------|------|
-| TP-01 | 완성 마방진에서 두 칸을 0으로, 시도 1이 성공하는 배치 | `int[6]`이 시도 1 규칙과 일치 |
-| TP-02 | 시도 1 실패·시도 2만 성공 | `n1>n2`이고 BR-12 만족 |
-| TP-03 | 시도 1·2 모두 실패 | `NO_SOLUTION` + 고정 메시지 |
-| TP-04 | 시도 1·2 모두 성공(이론상 가능 입력) | `AMBIGUOUS_SOLUTION` + 고정 메시지 |
-| TP-05 | 행 수 3 | `INVALID_GRID_SIZE`, 도메인 미호출 |
-| TP-06 | 빈칸 1개 | `INVALID_EMPTY_CELL_COUNT` |
-| TP-07 | 값 17 | `VALUE_OUT_OF_RANGE` |
-| TP-08 | 중복 값 | `DUPLICATE_NONZERO_VALUE` |
+**Dual-Track (필수 검증 트랙):** `B` = Logic만으로 AC 충분, `A` = Facade·Boundary(UX Contract)만, `A+B` = 단위(B)와 통합(A) 모두. 구현은 최소 `B`를 항상 두고, 공개 진입점이 있으면 `A` 또는 `A+B`를 추가한다.
+
+| 시나리오 ID | Dual-Track | 조건 | 기대 |
+|-------------|------------|------|------|
+| TP-01 | `B`; 진입점 있으면 `A+B` | 완성 마방진에서 두 칸을 0으로, 시도 1이 성공하는 배치 | `int[6]`이 시도 1 규칙과 일치 |
+| TP-02 | `B`; 진입점 있으면 `A+B` | 시도 1 실패·시도 2만 성공 | `n1>n2`이고 BR-12 만족 |
+| TP-03 | `A+B` | 시도 1·2 모두 실패 | `NO_SOLUTION` + 고정 메시지(B: 결과 타입·코드만, A: 전체 `message`) |
+| TP-04 | `A+B` | 시도 1·2 모두 성공(이론상 가능 입력) | `AMBIGUOUS_SOLUTION` + 고정 메시지 |
+| TP-05 | `A+B` | 행 수 3 | `INVALID_GRID_SIZE`, 도메인 미호출 |
+| TP-06 | `A+B` | 빈칸 1개 | `INVALID_EMPTY_CELL_COUNT` |
+| TP-07 | `A+B` | 값 17 | `VALUE_OUT_OF_RANGE` |
+| TP-08 | `A+B` | 중복 값 | `DUPLICATE_NONZERO_VALUE` |
 
 ### 9.2 회귀 테스트 정책
 
@@ -246,6 +376,12 @@
 | P-04 | 완성 후 FR-04 `true`이면 multiset은 {1,…,16} |
 | P-05 | 동일 입력 두 번 호출 시 결과 동일(NFR-03) |
 
+### 9.5 CI에서의 실행 순서 (권장)
+
+1. **Job B (Logic)** 먼저 또는 **Job A와 병렬** — 실패 시 로그에 `[logic]` / `[ux-contract]` 접두사로 구분한다.  
+2. **스모크(선택):** TP-05 한 건 + FR-04 완성 참 케이스 한 건으로 빠른 실패를 앞당길 수 있다(전체 스위트는 생략 불가).  
+3. **병합:** §8.5.1에 따라 A·B 모두 Green일 때만 허용한다.
+
 ---
 
 ## 10. Architecture Overview (High-Level)
@@ -254,9 +390,9 @@
 
 | 레이어 | 책임 |
 |--------|------|
-| **Boundary** | `null`/크기/빈칸 개수/범위/중복 검증; 도메인 실패 코드를 외부 계약으로 매핑; **입력 배열 불변** 보장 |
-| **Domain** | 빈칸·누락 수·완성 판정·두 시도 해결; **Boundary에 의존하지 않음** |
-| **Application(선택)** | Boundary와 Domain을 조합하는 얇은 오케스트레이션만 허용 |
+| **Boundary** | `null`/크기/빈칸 개수/범위/중복 검증; 도메인 실패 코드를 외부 계약으로 매핑; **입력 배열 불변** 보장 — Dual-Track의 **UX Contract** 테스트가 여기서 관측하는 공개 결과를 검증한다. |
+| **Domain** | 빈칸·누락 수·완성 판정·두 시도 해결; **Boundary에 의존하지 않음** — **Logic Rule** 트랙 전용. |
+| **Application(선택)** | Boundary와 Domain을 조합하는 얇은 오케스트레이션만 허용 — Facade 단위는 Track A가 호출하는 **유일한 굵은 진입점**으로 두면 UI·로직 테스트 분리가 쉽다. |
 
 ### 10.2 SRP·OCP
 
@@ -271,6 +407,16 @@ Caller → Boundary → Domain 포트(인터페이스)
       (Domain은 Boundary를 알지 못함)
 ```
 
+### 10.4 테스트·소스 레이아웃 (권장)
+
+Dual-Track 독립성을 코드 구조로 보강할 때의 **권장** 배치(이름은 예시).
+
+| 위치 | 내용 |
+|------|------|
+| `.../domain/...` | FR-02~05 순수 로직, Track B 테스트와 **동일 모듈** 또는 `src/test/.../domain` |
+| `.../boundary/` / `.../application/` | FR-01·Facade, Track A 테스트는 **이 패키지 쪽**에만 두거나 `src/test/.../contract` |
+| Track A 테스트 | `**/domain/**` 타입에 대한 **직접 import 금지**(§8.5.1) — 진입 인터페이스만 사용 |
+
 ---
 
 ## 11. Risks & Ambiguities
@@ -282,6 +428,7 @@ Caller → Boundary → Domain 포트(인터페이스)
 | DEC-03 | 시도 1이 성공하면 시도 2를 **실행하지 않는다**. |
 | DEC-04 | “시도 2 성공 시 역순 반환”은 **`[r1,c1,n1,r2,c2,n2]`에서 `n1`이 큰 수, `n2`가 작은 수**로 해석한다(좌표 순서는 FR-02와 동일). |
 | DEC-05 | 호출자 배열 **불변**; 내부 작업용 복사는 구현 세부이나 **관측 가능 부작용 없음**은 테스트로 고정(NFR-04). |
+| DEC-06 | CI에서 Job A 또는 Job B가 **필수 게이트**에서 실패한 커밋은 **병합하지 않는다**. 이미 병합된 경우 **revert 우선**으로 main 복구 후, 실패 트랙만 재작업하는 PR을 분리한다. |
 
 **자주 실수하는 포인트:** 0-index vs 1-index 혼동; row-major 첫 빈칸 정의; 시도 1 성공 후 시도 2 중복 실행; 입력 배열 제자리 수정; `NO_SOLUTION`과 `false` 판정 혼동; 에러 메시지 부분 문자열 assert로 인한 계약 붕괴.
 
@@ -289,27 +436,48 @@ Caller → Boundary → Domain 포트(인터페이스)
 
 ## 12. Traceability Matrix (필수)
 
-| Concept / Invariant | Business Rule | Feature (FR) | Acceptance Criteria (요약) | Test Case / 시나리오 | Component |
-|---------------------|---------------|--------------|------------------------------|----------------------|-----------|
-| 4×4 크기 | BR-01 | FR-01 | AC-FR01-1,2 | TP-05, U계열 매핑 | Boundary |
-| 빈칸 정확히 2 | BR-03 | FR-01 | AC-FR01-3 | TP-06 | Boundary |
-| 값 0 또는 1~16 | BR-02 | FR-01 | AC-FR01-4 | TP-07 | Boundary |
-| 0 제외 중복 없음 | BR-04 | FR-01 | AC-FR01-5 | TP-08 | Boundary |
-| 검증 시 도메인 미호출 | 입력 계약 | FR-01 | AC-FR01-6 | Boundary Mock 테스트 | Boundary |
-| 입력 배열 불변 | NFR-04 | FR-01 | AC-FR01-7 | 스냅샷 비교 테스트 | Boundary, Domain 진입 |
-| Row-major 빈칸 | BR-05 | FR-02 | AC-FR02-1 | D-T03 대응, TP-02 보조 | Domain |
-| 누락 두 수 | BR-06 | FR-03 | AC-FR03-1 | TD-02 계열 | Domain |
-| 합 34 | BR-07 | FR-04 | AC-FR04-1~3 | TD-03 | Domain |
-| 1~16 순열 | BR-08 | FR-04 | AC-FR04-3 | D-T15 대응 | Domain |
-| 성공 좌표 범위 | BR-09 | FR-05 | AC-FR05-1,2 | TP-01,02 | Domain, Boundary |
-| n1,n2 위치 의미 | BR-10 | FR-05 | AC-FR05-1,2 | TP-01,02 | Domain |
-| 시도 1 성공 순서 | BR-11 | FR-05 | AC-FR05-1,5 | TP-01 | Domain |
-| 시도 2 성공 순서 | BR-12 | FR-05 | AC-FR05-2 | TP-02 | Domain |
-| 모두 실패 | DEC-01, BR-ERR-05 | FR-05 | AC-FR05-3 | TP-03 | Domain → Boundary |
-| 모두 성공 | DEC-02, BR-ERR-06 | FR-05 | AC-FR05-4 | TP-04 | Domain → Boundary |
-| 고정 오류 문구 | BR-ERR-01~07 | FR-01, FR-05 | 각 AC | TP-05~08, TP-03~04 | Boundary |
-| 결정론 | NFR-03 | FR-02~05 | P-05 | 반복 실행 테스트 | System |
-| 커버리지 목표 | NFR-01,02 | 전 FR | 리포트 수치 | CI 잡 | Quality |
+**Dual-Track 매핑:** `Component`가 Boundary·진입점이면 §8.4 **Track A(UX Contract)** 테스트로, Domain이면 **Track B(Logic Rule)** 테스트로 추적한다. Domain → Boundary로 전달되는 오류는 Track A에서 메시지·코드를, Track B에서는 결과 타입·호출 정책만 검증한다. `Dual-Track` 열: **A** / **B** / **A+B**.
+
+| Concept / Invariant | Business Rule | Feature (FR) | Acceptance Criteria (요약) | Test Case / 시나리오 | Component | Dual-Track |
+|---------------------|---------------|--------------|------------------------------|----------------------|-----------|------------|
+| 4×4 크기 | BR-01 | FR-01 | AC-FR01-1,2 | TP-05 | Boundary | A+B |
+| 빈칸 정확히 2 | BR-03 | FR-01 | AC-FR01-3 | TP-06 | Boundary | A+B |
+| 값 0 또는 1~16 | BR-02 | FR-01 | AC-FR01-4 | TP-07 | Boundary | A+B |
+| 0 제외 중복 없음 | BR-04 | FR-01 | AC-FR01-5 | TP-08 | Boundary | A+B |
+| 검증 시 도메인 미호출 | 입력 계약 | FR-01 | AC-FR01-6 | TP-05~08, Mock | Boundary | A+B |
+| 입력 배열 불변 | NFR-04 | FR-01 | AC-FR01-7 | 스냅샷 비교 테스트 | Boundary, Domain 진입 | A+B |
+| Row-major 빈칸 | BR-05 | FR-02 | AC-FR02-1 | TD-02, TP-02 | Domain | B |
+| 누락 두 수 | BR-06 | FR-03 | AC-FR03-1 | TD-02 계열 | Domain | B |
+| 합 34 | BR-07 | FR-04 | AC-FR04-1~3 | TD-03 | Domain | B |
+| 1~16 순열 | BR-08 | FR-04 | AC-FR04-3 | TD-03, INV-C1 | Domain | B |
+| 성공 좌표 범위 | BR-09 | FR-05 | AC-FR05-1,2 | TP-01,02 | Domain, Boundary | B / A+B |
+| n1,n2 위치 의미 | BR-10 | FR-05 | AC-FR05-1,2 | TP-01,02 | Domain | B |
+| 시도 1 성공 순서 | BR-11 | FR-05 | AC-FR05-1,5 | TP-01 | Domain | B |
+| 시도 2 성공 순서 | BR-12 | FR-05 | AC-FR05-2 | TP-02 | Domain | B |
+| 모두 실패 | DEC-01, BR-ERR-05 | FR-05 | AC-FR05-3 | TP-03 | Domain → Boundary | A+B |
+| 모두 성공 | DEC-02, BR-ERR-06 | FR-05 | AC-FR05-4 | TP-04 | Domain → Boundary | A+B |
+| 고정 오류 문구 | BR-ERR-01~07 | FR-01, FR-05 | 각 AC | TP-05~08, TP-03~04 | Boundary | A |
+| 결정론 | NFR-03 | FR-02~05 | P-05 | 반복 실행 테스트 | System | B |
+| 커버리지 목표 | NFR-01,02 | 전 FR | 리포트 수치 | CI 잡 | Quality | — |
+| 재현 가능 빌드 | NFR-06 | 전 FR | CI JDK·빌드 도구 고정 | CI 설정 | Quality | — |
+
+---
+
+## 13. Glossary (용어)
+
+| 용어 | 정의 |
+|------|------|
+| **UX Contract** | 호출자·UI·API 소비자가 **관측**할 수 있는 상태(메시지 가시성, 오류 코드, 성공 페이로드 포함 여부 등). §8.2. |
+| **Logic Rule** | 도메인이 수행하는 **판단**(허용/거부, 반환/차단 등). UI 표현과 분리한다. §8.2. |
+| **Track A / Job A** | UX Contract 전용 테스트·CI 단계. Facade/Boundary만 호출. §8.4, §8.5.1. |
+| **Track B / Job B** | Logic Rule 전용 테스트·CI 단계. Domain 순수 API. §8.4, §8.5.1. |
+| **Boundary** | FR-01 등 입력 검증 및 외부 계약 매핑 레이어. §10.1. |
+| **Domain** | FR-02~05 마방진 관련 순수 판단. Boundary 비의존. §10.1. |
+| **Facade / Application** | Boundary와 Domain을 묶는 **얇은** 진입점. Track A의 권장 유일 굵은 진입점. §10.1. |
+| **SoT (Single Source of Truth)** | `message` 전문은 §6 BR-ERR-*가 근거. JSON 등 외부 스키마는 §8.6이 참조 형식. |
+| **골든 벡터 / TD-*** | 기대 `int[6]`·입력 격자를 파일·상수로 고정한 회귀 자산. §9.3. |
+| **INV-C*** | 완성(0 없음) 격자에 대한 수학적 불변조건 집합. §2.3. |
+| **MLOps 정합(본 PRD)** | 학습 파이프라인이 없어도 **단계 분리·아티팩트·게이트·관측**을 CI에 대응시키는 것. §8.5. |
 
 ---
 
@@ -318,8 +486,8 @@ Caller → Boundary → Domain 포트(인터페이스)
 | 항목 | 내용 |
 |------|------|
 | 위치 | `docs/PRD_MagicSquare_4x4_TDD.md` |
-| 버전 | 1.0 (2026-04-28) |
-| 제외 | 구현 코드, UI/DB 구현, N×N 일반화 요구 |
+| 버전 | 1.2 (2026-04-28) — §2.3 완성 불변조건, NFR-06, §8.5.1~8.10·외부 스키마·RACI·DoD·안티패턴, §9.1 Dual-Track 열·§9.5, §10.4, §11 DEC-06, §12 Dual-Track 열·추적 정리, §13 용어집 |
+| 제외 | 구현 코드, 상용 UI/DB 구현, N×N 일반화 요구 |
 
 ---
 
