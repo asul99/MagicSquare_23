@@ -14,7 +14,7 @@ dev = ["pytest>=7.0"]
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["magic_square*"]
+include = ["magic_square*", "magicsquare*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
