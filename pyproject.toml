@@ -19,3 +19,7 @@ include = ["magic_square*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+addopts = ["-m", "not red_phase"]
+markers = [
+    "red_phase: Intentional RED TDD stubs (see Reporter/21, docs/TC_D2_unit_magic_square_entity_user_sample.md); run: pytest -m red_phase",
+]
