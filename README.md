@@ -8,7 +8,9 @@
 
 ---
 
-## 문서 맵 (Reporter — 각 한 줄)
+## 문서 맵
+
+### Reporter (각 한 줄)
 
 | 문서 | 역할 |
 |------|------|
@@ -31,8 +33,19 @@
 | [`Reporter/16_magic-square-prd-export-report.md`](Reporter/16_magic-square-prd-export-report.md) | PRD 작성 산출·SoT 경로·근거 Reporter 요약. |
 | [`Reporter/17_magic-square-prd-dual-track-mlops-alignment-report.md`](Reporter/17_magic-square-prd-dual-track-mlops-alignment-report.md) | PRD Dual-Track·§8·CI Job A/B·ArchUnit 권장과의 정렬. |
 | [`Reporter/18_magic-square-implementation-todo-structure-export-report.md`](Reporter/18_magic-square-implementation-todo-structure-export-report.md) | Epic / US / TASK 인덱스·시나리오 레벨·ECB·PRD 매핑표. |
+| [`Reporter/19_magic-square-readme-root-export-report.md`](Reporter/19_magic-square-readme-root-export-report.md) | 루트 `README.md` 작성·문서 맵·To-Do 이관 메타 보내기. |
+| [`Reporter/20_magic-square-readme-todo-traceability-session-export-report.md`](Reporter/20_magic-square-readme-todo-traceability-session-export-report.md) | README·`Reporter/18`·추적 매트릭스(RTM) 정합·슬라이드 예시와 TASK ID 대응 보내기. |
 
-PRD 서두의 근거 문서(01·02·03·04)와 [`Reporter/16`](Reporter/16_magic-square-prd-export-report.md)·[`Reporter/18`](Reporter/18_magic-square-implementation-todo-structure-export-report.md)의 교차 참조를 유지한다.
+PRD 서두의 근거 문서(01·02·03·04)와 [`Reporter/16`](Reporter/16_magic-square-prd-export-report.md)·[`Reporter/18`](Reporter/18_magic-square-implementation-todo-structure-export-report.md)의 교차 참조를 유지한다. **루트 README 작업 이력**은 [`Reporter/19`](Reporter/19_magic-square-readme-root-export-report.md), **체크리스트·요구사항 추적 표 세션 정리**는 [`Reporter/20`](Reporter/20_magic-square-readme-todo-traceability-session-export-report.md)을 병행한다.
+
+### Prompt (`Reporter/17`~`20` 대응)
+
+| 파일 | 역할 |
+|------|------|
+| [`Prompt/17_magic-square-prd-dual-track-mlops-alignment-report-Prompting.md`](Prompt/17_magic-square-prd-dual-track-mlops-alignment-report-Prompting.md) | Dual-Track·MLOps 정렬 보고서 재생성·검토용 프롬프트. |
+| [`Prompt/18_magic-square-implementation-todo-structure-export-report-Prompting.md`](Prompt/18_magic-square-implementation-todo-structure-export-report-Prompting.md) | 구현 To-Do 구조 보고서 재생성·검토용 프롬프트. |
+| [`Prompt/19_magic-square-readme-root-export-report-Prompting.md`](Prompt/19_magic-square-readme-root-export-report-Prompting.md) | 루트 README 보내기 보고서 재생성·검토용 프롬프트. |
+| [`Prompt/20_magic-square-readme-todo-traceability-session-export-report-Prompting.md`](Prompt/20_magic-square-readme-todo-traceability-session-export-report-Prompting.md) | To-Do·추적 매트릭스 세션 보고서 재생성·검토용 프롬프트. |
 
 ---
 
@@ -40,7 +53,7 @@ PRD 서두의 근거 문서(01·02·03·04)와 [`Reporter/16`](Reporter/16_magic
 
 - **PRD:** 범위·FR-01~05·AC·§12 추적.
 - **여정·스토리 서술:** [`Reporter/09`](Reporter/09_magic-square-user-journey-epic-business-goal-report.md)(Epic·목표), [`Reporter/11`](Reporter/11_magic-square-user-journey-epic-level3-user-stories-report.md)(User Story), 상위 레벨은 `Reporter/10`~`15` 시리즈.
-- **구현용 식별자:** [`Reporter/18`](Reporter/18_magic-square-implementation-todo-structure-export-report.md)의 **Epic-001**, **US-001~006**와 아래 To-Do.
+- **구현용 식별자:** [`Reporter/18`](Reporter/18_magic-square-implementation-todo-structure-export-report.md)의 **Epic-001**, **US-001~006**와 아래 To-Do. 요약 **Task→FR→시나리오→테스트** 표는 [`Reporter/20`](Reporter/20_magic-square-readme-todo-traceability-session-export-report.md) §4.
 
 ---
 
@@ -105,7 +118,7 @@ pytest
 
 ## To-Do (구현 체크리스트)
 
-아래는 [`Reporter/18`](Reporter/18_magic-square-implementation-todo-structure-export-report.md) **TASK-001~026**을 PRD·시나리오와 맞춘 체크리스트다. 완료 의미·테스트 이름·패키지 배치는 **PRD §10.4** 및 Reporter 18 본문을 따른다.
+아래는 [`Reporter/18`](Reporter/18_magic-square-implementation-todo-structure-export-report.md) **TASK-001~026**을 PRD·시나리오와 맞춘 체크리스트다. 완료 의미·테스트 이름·패키지 배치는 **PRD §10.4** 및 Reporter 18 본문을 따르며, 동일 목록·추적 매트릭스 요약은 [`Reporter/20`](Reporter/20_magic-square-readme-todo-traceability-session-export-report.md)에도 아카이브되어 있다.
 
 ### Epic-001 — Magic Square 4×4 완성 시스템
 
