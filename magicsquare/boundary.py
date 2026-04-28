@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from magicsquare.constants import EMPTY_CELL_VALUE, MATRIX_SIZE, SOLUTION_VECTOR_SIZE
-from magicsquare.domain import find_blank_coords
+from magicsquare.constants import MATRIX_SIZE, SOLUTION_VECTOR_SIZE
+from magicsquare.domain import line_sums, solve_two_blanks
 
 
 def validate_grid_input(grid: Any) -> None:
@@ -49,11 +49,13 @@ def solve(grid: list[list[int]]) -> list[int]:
             not contain exactly two blanks.
     """
     validate_grid_input(grid)
-    blanks = find_blank_coords(grid)
-    if len(blanks) != 2:
-        raise ValueError("Exactly two cells must be empty (value 0).")
-    (r1, c1), (r2, c2) = blanks
-    result = [r1, c1, EMPTY_CELL_VALUE, r2, c2, EMPTY_CELL_VALUE]
+    result = solve_two_blanks(grid)
     if len(result) != SOLUTION_VECTOR_SIZE:
         raise ValueError("Internal error: invalid solution vector size.")
     return result
+
+
+def get_line_sums(grid: list[list[int]]) -> dict[str, list[int]]:
+    """Validate a grid and return row/column/diagonal sums for display."""
+    validate_grid_input(grid)
+    return line_sums(grid)
