@@ -1,11 +1,9 @@
-"""RED stubs for ``magic_square.entity.user`` (TDD RED before GREEN).
+"""RED stubs: ``magic_square.entity.user`` (entity / logic layer).
 
-Maps 1:1 to ``docs/TC_D2_unit_magic_square_entity_user_sample.md`` test-step rows
-and ``Reporter/21_magic-square-d2-tc-red-branch-github-session-export-report.md``.
+Maps to ``docs/TC_D2_unit_magic_square_entity_user_sample.md`` and
+``Reporter/21_magic-square-d2-tc-red-branch-github-session-export-report.md``.
 
-* Default ``pytest`` skips these (``-m "not red_phase"`` in ``pyproject.toml``).
-* Run intentional failures: ``pytest -m red_phase`` (from repo root).
-* GREEN reference implementation: ``tests/entity/test_user.py``.
+GREEN reference: ``tests/entity/test_user.py``.
 """
 
 from __future__ import annotations

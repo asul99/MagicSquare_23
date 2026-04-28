@@ -108,7 +108,7 @@ pytest tests\entity\test_user.py::test_create_user_strips_whitespace -v
 
 **기대 결과:** 위 명령들이 **exit code 0**, 실패 0건. `docs/TC_D2_unit_magic_square_entity_user_sample.md`의 테스트 단계 표에 적힌 각 행이 `tests/entity/test_user.py`의 `test_*` 함수와 1:1로 맞는지 보면서 교육용으로 교차 검증한다.
 
-**RED 단계 스텁** (`tests/red_phase/test_user_entity_red.py`, `pytest.mark.red_phase`): 기본 `pytest`는 이들을 제외하고(`pyproject.toml` `addopts`) GREEN만 검증한다. **의도적으로 RED만 돌릴 때**도 가상환경을 켠 뒤 루트에서 실행한다.
+**RED 단계 스텁** (`tests/red_phase/` 하위 **`logic/`**·**`boundary/`**·**`ui/`**, `pytest.mark.red_phase`): ECB에 맞춰 순수 규칙·유스케이스는 `logic`, 외부 계약·오류 코드는 `boundary`, 입력·표현은 `ui`에 둔다. 기본 `pytest`는 이들을 제외하고(`pyproject.toml` `addopts`) GREEN만 검증한다. **의도적으로 RED만 돌릴 때**도 가상환경을 켠 뒤 루트에서 실행한다.
 
 ```powershell
 cd c:\DEV\MagicSquare_23
@@ -116,7 +116,24 @@ cd c:\DEV\MagicSquare_23
 pytest -m red_phase tests\red_phase -v
 ```
 
-venv 없이: `py -3 -m pytest -m red_phase tests\red_phase -v` — **8건 실패**가 정상(각 테스트가 `pytest.fail` 한 줄만 갖는 TDD RED 스켈레톤).
+venv 없이: `py -3 -m pytest -m red_phase tests\red_phase -v` — **전부 실패**가 정상(`logic`·`boundary`·`ui` 스텁이 각각 `pytest.fail` 한 줄만 가짐; 건수는 스텁 추가에 따라 변동).
+
+### 0.3a 가상환경에서 평가(검증) 방법
+
+**전제:** §0.2대로 `.venv`를 만들고 **활성화**한 뒤 `python -m pip install -e ".[dev]"`까지 완료했다고 본다. 평가는 **항상 활성화된 터미널**에서 수행한다.
+
+| 단계 | 하는 일 | 합격(통과) 기준 |
+|------|---------|-----------------|
+| 1. 도구 확인 | `python -c "import sys; print(sys.executable)"` | 경로에 **`.venv`**가 포함됨 (전역 Python이 아님). |
+| 2. GREEN 회귀 | `pytest tests\entity -q` | **exit code 0**, 실패 0, 경고만으로 중단되지 않음. |
+| 3. 전체 스위트(선택) | `pytest tests -q` | **8 passed**, `red_phase`는 deselect(기본 설정). |
+| 4. TC 추적성 | `docs/TC_D2_unit_magic_square_entity_user_sample.md` 표 **비고** 열과 `tests\entity\test_user.py`의 `test_*` 이름 대조 | 행마다 1:1 대응(누락·이름 불일치 없음). |
+| 5. RED 스텁(의도 실패) | `pytest -m red_phase tests\red_phase -q` | **전부 실패**가 정상(스켈레톤 유지 시). GREEN 구현 후에는 이 항목을 평가에서 제외하거나 마커를 조정한다. |
+| 6. 커버리지(선택) | `python -m pip install pytest-cov` 후 `pytest tests\entity --cov=magic_square.entity --cov-report=term-missing -q` | 팀·`.cursorrules`의 하한(예: 80%) 이상이면 통과로 기록. |
+
+**실패 시 기록:** 터미널에 남은 **마지막 30줄**과 `pytest … -v` 한 번 재실행 결과를 제출물에 붙인다.
+
+**수강·자기점검용 한 줄:** “가상환경 켰는지 → `pytest tests\entity -q`가 0인지 → TC 표와 함수명이 맞는지” 순으로 보면 된다.
 
 ### 0.4 TC 문서 열고 따라 읽기
 
@@ -280,3 +297,5 @@ venv 없이 실행할 때는 위에서 `pytest` → `py -3 -m pytest` 로 바꾼
 | 2026-04-28 | 개정: **§0 실습 가이드** 추가 — 환경 준비, pytest·Git 명령, TC 문서 교차 검증, 트러블슈팅, SHA 스냅샷 주의, TC↔pytest 표 |
 | 2026-04-28 | 개정: **§0.2 가상환경(venv)** 절차 — 생성·활성화·의존성·`deactivate`, PowerShell 실행 정책, venv 없을 때 `py -3` 대안; §0.3~번호 정렬 및 트러블슈팅 보강 |
 | 2026-04-28 | 개정: **가상환경 복사용 요약 블록** 및 **§0.3 RED 스텁** (`pytest -m red_phase`) venv / 비venv 명령 |
+| 2026-04-28 | 개정: RED 스텁 경로를 `tests/red_phase/logic|boundary|ui`(ECB 정렬)로 분리·보강 |
+| 2026-04-28 | 개정: **§0.3a 가상환경에서 평가(검증) 방법** — 실행 경로 확인, GREEN/RED·TC·커버리지(선택) 기준 표 |

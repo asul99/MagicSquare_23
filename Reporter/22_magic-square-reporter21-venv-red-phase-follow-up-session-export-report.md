@@ -12,8 +12,8 @@
 |------|------|
 | **요청 맥락** | `Reporter/21`을 참조한 실습 가능 보강, 가상환경(venv) 기준 실행 안내, TDD **RED** 스켈레톤 테스트, 위 작업 내용의 **Reporter보내기** |
 | **문서 변경** | `Reporter/21` — §0 실습 가이드 확장(venv §0.2, pytest §0.3, Git §0.5 등), 복사용 venv 요약 블록, `pytest -m red_phase` 절차, 트러블슈팅·TC↔pytest 표·변경 이력 누적 |
-| **코드·설정 변경** | `tests/red_phase/` — TC-MS-ENTITY-001 및 `test_user.py`와 동일한 **8개** 테스트명, 본문은 `pytest.fail`만; `pyproject.toml` — `markers.red_phase`, `addopts`로 기본 수집에서 RED 스텁 제외 |
-| **검증** | 기본 `pytest`: GREEN 8건 통과·RED 8건 deselect; `pytest -m red_phase tests/red_phase`: 8건 의도적 실패 |
+| **코드·설정 변경** | `tests/red_phase/{logic,boundary,ui}/` — 레이어별 RED 스텁(`pytest.fail`); `logic`에 User 8건·control 3건, `boundary` 4건, `ui` 2건; `pyproject.toml` — `markers.red_phase`, `addopts`로 기본 수집에서 제외 |
+| **검증** | 기본 `pytest`: GREEN 통과·RED 항목 deselect; `pytest -m red_phase tests/red_phase`: 레이어 합산 건수만큼 의도적 실패 |
 
 ---
 
@@ -22,8 +22,12 @@
 | 경로 | 작업 |
 |------|------|
 | [`Reporter/21_magic-square-d2-tc-red-branch-github-session-export-report.md`](21_magic-square-d2-tc-red-branch-github-session-export-report.md) | 실습 가이드 §0 전면 보강; venv 생성·활성화·의존성·`deactivate`; PowerShell 실행 정책; GREEN/RED pytest 명령; Git·트러블슈팅; 가상환경 **복사용 요약** 및 **RED 스텁** 실행 문단 추가 |
-| [`tests/red_phase/__init__.py`](../tests/red_phase/__init__.py) | 패키지 초기화(짧은 모듈 설명) |
-| [`tests/red_phase/test_user_entity_red.py`](../tests/red_phase/test_user_entity_red.py) | RED 스텁 8개, `pytestmark = pytest.mark.red_phase`, TC·Reporter/21 교차 참조 docstring |
+| [`tests/red_phase/__init__.py`](../tests/red_phase/__init__.py) | 패키지 레이아웃 설명 |
+| [`tests/red_phase/logic/`](../tests/red_phase/logic/) · [`boundary/`](../tests/red_phase/boundary/) · [`ui/`](../tests/red_phase/ui/) | ECB 정렬 RED 스텁 하위 패키지 |
+| [`tests/red_phase/logic/test_user_entity_red.py`](../tests/red_phase/logic/test_user_entity_red.py) | entity·TC D2 정렬 RED 8건 |
+| [`tests/red_phase/logic/test_magic_square_control_red.py`](../tests/red_phase/logic/test_magic_square_control_red.py) | control 흐름 RED 스텁 |
+| [`tests/red_phase/boundary/test_magic_square_boundary_red.py`](../tests/red_phase/boundary/test_magic_square_boundary_red.py) | boundary·FR-01·BR-ERR 계약 RED 스텁 |
+| [`tests/red_phase/ui/test_magic_square_ui_red.py`](../tests/red_phase/ui/test_magic_square_ui_red.py) | UI 경계 RED 스텁 |
 | [`pyproject.toml`](../pyproject.toml) | `[tool.pytest.ini_options]`에 `addopts = ["-m", "not red_phase"]`, `markers`에 `red_phase` 설명 등록 |
 | 본 파일 `Reporter/22_…` | 세션 산출 **보내기 보고서** |
 
@@ -51,7 +55,7 @@
 | 목적 | 명령 |
 |------|------|
 | GREEN만 | `pytest tests/entity -q` 또는 `pytest tests -q` |
-| RED 스텁만(8 실패 예상) | `pytest -m red_phase tests/red_phase -v` |
+| RED 스텁만(17 실패 예상, 스텁 개수에 따라 변동) | `pytest -m red_phase tests/red_phase -v` |
 | 수집 확인 | `pytest tests/entity --collect-only -q` |
 
 ---
@@ -78,3 +82,5 @@
 | 일자 | 내용 |
 |------|------|
 | 2026-04-28 | 초안: `Reporter/21` 후속 세션 — venv·RED 스텁·`pyproject.toml`·검증·연계를 정리한보내기 보고서 (`Reporter/22`) |
+| 2026-04-28 | 개정: RED 스텁을 `tests/red_phase/logic|boundary|ui` ECB 정렬 디렉터리로 분리 (본 보고서·`Reporter/21`·`pyproject.toml` 마커 설명 동기화) |
+| 2026-04-28 | 개정: §4 RED 실행 표 — 실패 건수 **17**으로 정정 (`Reporter/23`과 정합) |
