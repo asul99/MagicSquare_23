@@ -99,6 +99,13 @@ pip install -e ".[dev]"
 pytest
 ```
 
+**GUI (Screen, PyQt6)**
+
+```bash
+pip install -e ".[dev,gui]"
+python -m magicsquare.gui
+```
+
 - 테스트 경로·옵션: [`pyproject.toml`](pyproject.toml) `[tool.pytest.ini_options]` (`testpaths = ["tests"]`, `pythonpath = ["."]`).
 - 패키지 발견: `include = ["magic_square*"]`, `requires-python = ">=3.10"`.
 
